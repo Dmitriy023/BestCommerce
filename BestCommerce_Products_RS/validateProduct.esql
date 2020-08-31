@@ -1,0 +1,74 @@
+
+
+CREATE COMPUTE MODULE validateProduct
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE product REFERENCE TO InputRoot.JSON.Data;
+		DECLARE rowCheck ROW;
+		DECLARE rowSQN ROW;
+		DECLARE isError BOOLEAN FALSE;
+		DECLARE errorText CHARACTER '';
+		DECLARE sessionID CHARACTER InputRoot.HTTPInputHeader.Sessionid;
+		
+		IF product.merchantId IS NULL OR product.merchantId = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * merchantId * is not defined! ';
+		ELSE 
+			SET rowCheck.row[] = PASSTHRU('SELECT * FROM iba_app.tmp_dm_bestcom_merchant s where s.merchant_id = ?',product.merchantId);
+			IF CARDINALITY(rowCheck.row[]) = 0 THEN 
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * merchantId * is not found in our database ! Please check your merchants ID.';
+			END IF;	
+		END IF;
+		
+		IF product.name IS NULL OR product.name = '' THEN
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * name * is not defined! ';
+		END IF;	
+		
+		IF product.category IS NULL OR product.category = '' THEN
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * category * is not defined! ';
+		END IF;
+		
+		IF product.description IS NULL OR product.description = '' THEN
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * description * is not defined! ';
+		END IF;
+		
+		IF product.price IS NULL OR product.price = '' THEN
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * price * is not defined! ';
+		END IF;
+		
+		IF product.priceCCY IS NULL OR product.priceCCY = '' THEN
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * priceCCY * is not defined! ';
+		END IF;
+		
+		IF product.payType IS NULL OR product.payType = '' THEN
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * payType * is not defined! ';
+		END IF;
+		
+		IF product.deliveryCountry <> '' THEN 
+			SET rowCheck.row[] = PASSTHRU('SELECT COUNT(*) CNT FROM IBA_APP.TMP_DM_BESTCOM_COUNTRIES S WHERE S.CODE = ?',product.deliveryCountry);
+			IF rowCheck.row[1].CNT = 0 THEN 
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * deliveryCountry * is not invalid! Please check your country. ';
+			END IF;	
+			
+		END IF;
+		
+		IF isError IS TRUE THEN 
+			SET OutputRoot.JSON.Data.status.statusCode = -1;
+			SET OutputRoot.JSON.Data.status.statusText = errorText;
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE;
+		END IF;
+		
+		SET OutputRoot = InputRoot;
+		RETURN TRUE;
+	END;
+
+END MODULE;

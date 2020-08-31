@@ -1,0 +1,79 @@
+
+
+CREATE COMPUTE MODULE getGet_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+
+		DECLARE merchantId CHARACTER InputLocalEnvironment.REST.Input.Parameters.merchantId;
+		DECLARE orderBy CHARACTER InputLocalEnvironment.REST.Input.Parameters.orderBy;
+		DECLARE fromR CHARACTER InputLocalEnvironment.REST.Input.Parameters.from;
+		DECLARE toR CHARACTER InputLocalEnvironment.REST.Input.Parameters.to;
+		DECLARE rowProducts ROW;		
+		DECLARE i INTEGER 1;	
+		DECLARE sqlProducts CHARACTER 'SELECT *
+										  FROM (SELECT rownum rn,
+										               s.*,
+										               CASE
+										                 WHEN m.discount_id is NOT NULL THEN
+										                  s.price * m.discount_persentage / 100
+										               END DISCOUNT_PRICE
+										          FROM iba_app.tmp_dm_bestcom_merch_products s
+										          left join iba_app.tmp_dm_bestcom_merch_discounts m
+										            ON m.merchant_id = s.merchant_id
+										           and m.product_id = s.product_id
+										         where s.merchant_id = ?) m
+										 where rn between ? and ? ';
+									 
+									 
+		IF fromR IS NULL OR fromR = '' THEN
+			SET fromR = '0';
+		END IF;
+		
+		IF  toR IS NULL OR toR = '' THEN
+			SET toR = '5';
+		END IF;	
+		
+		IF orderBy IS not NULL OR orderBy <> '' THEN
+			SET sqlProducts	= sqlProducts || orderBy;	
+		ELSE 
+			SET sqlProducts	= sqlProducts || 'order by m.date_created desc';
+		END IF;	 
+		
+		SET rowProducts.row[] = PASSTHRU(sqlProducts,merchantId,fromR,toR);
+		
+		IF CARDINALITY(rowProducts.row[])>0 THEN
+
+			SET OutputRoot.JSON.Data.status.statusCode = 0;
+			SET OutputRoot.JSON.Data.status.statusText = 'Successfully Processed';
+			CREATE FIELD OutputRoot.JSON.Data.products IDENTITY (JSON.Array)products;
+			
+			FOR iRow AS rowProducts.row[] DO
+				
+				SET OutputRoot.JSON.Data.products.Item[i].productId = iRow.PRODUCT_ID;
+				SET OutputRoot.JSON.Data.products.Item[i].merchantId = iRow.MERCHANT_ID;
+				SET OutputRoot.JSON.Data.products.Item[i].name = iRow.NAME;
+				SET OutputRoot.JSON.Data.products.Item[i].category = iRow.CATEGORY;
+				SET OutputRoot.JSON.Data.products.Item[i].description = iRow.DESCRIPTION;
+				SET OutputRoot.JSON.Data.products.Item[i].price = CAST(iRow.PRICE AS CHARACTER);
+				SET OutputRoot.JSON.Data.products.Item[i].priceCCY = iRow.PRICE_CCY;
+				SET OutputRoot.JSON.Data.products.Item[i].discountId = iRow.DISCOUNT_ID;
+				SET OutputRoot.JSON.Data.products.Item[i].payType = iRow.PAY_TYPE;
+				SET OutputRoot.JSON.Data.products.Item[i].deliveryCountry = iRow.DELIVERY_COUNTRIES;
+				SET OutputRoot.JSON.Data.products.Item[i].dateCreated = CAST(iRow.DATE_CREATED AS CHARACTER FORMAT 'yyyy-MM-dd');
+				
+				IF iRow.DISCOUNT_PRICE IS NOT NULL AND iRow.DISCOUNT_PRICE <> '' THEN 
+					SET OutputRoot.JSON.Data.products.Item[i].price = CAST(CAST(iRow.DISCOUNT_PRICE AS DECIMAL) AS CHARACTER);
+				END IF;	
+				
+				SET i = i + 1;
+			END FOR;
+		ELSE
+			SET OutputRoot.JSON.Data.status.statusCode = -1;
+			SET OutputRoot.JSON.Data.status.statusText = 'No data found for your merchant. Please add new products and try again';
+		END IF;			
+		
+		SET OutputRoot.HTTPResponseHeader."SessionId" = InputRoot.HTTPInputHeader.Sessionid;
+		RETURN TRUE;
+	END;
+
+END MODULE;

@@ -1,0 +1,34 @@
+
+
+CREATE COMPUTE MODULE Error_Handler
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE start REFERENCE TO InputExceptionList.*[1];
+		DECLARE msgLastChild REFERENCE TO InputExceptionList.*[1];
+		DECLARE errText CHARACTER '';
+		DECLARE i INTEGER;
+
+		MOVE msgLastChild LASTCHILD;
+		WHILE msgLastChild.Number IS NOT NULL DO
+ 
+		   MOVE start LASTCHILD;
+		-- Move start to the last child of the field to which it currently points
+           MOVE msgLastChild LASTCHILD;
+	    END WHILE;	    	    
+	  	
+	
+		DECLARE inserts REFERENCE TO start.Insert;
+		SET i = 1;
+		WHILE i <= CARDINALITY(start.Insert[]) DO
+			IF start.Insert[i].Type = 5 THEN
+				SET errText = errText || ' ' || start.Insert[i].Text;												
+			END IF;
+			SET i = i + 1;
+		END WHILE;	
+		
+		SET OutputRoot.JSON.Data.status.statusCode = -1;	
+		SET OutputRoot.JSON.Data.status.statusText = errText;	
+		RETURN TRUE;
+	END;
+
+END MODULE;

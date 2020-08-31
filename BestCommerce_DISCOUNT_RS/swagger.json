@@ -1,0 +1,86 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "title" : "BestCommerce_DISCOUNT_RS",
+    "version" : "1.0.0",
+    "description" : "BestCommerce_DISCOUNT_RS"
+  },
+  "paths" : {
+    "/discount/add" : {
+      "post" : {
+        "operationId" : "postAdd",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful.",
+            "schema" : {
+              "$ref" : "#/definitions/setDiscountResponse"
+            }
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a add",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/Discount"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        }, {
+          "name" : "sessionID",
+          "in" : "header",
+          "type" : "string",
+          "required" : true
+        } ]
+      }
+    }
+  },
+  "basePath" : "/bestcommerce_discount_rs/",
+  "definitions" : {
+    "Discount" : {
+      "type" : "object",
+      "properties" : {
+        "discountId" : {
+          "type" : "string"
+        },
+        "merchantId" : {
+          "type" : "string"
+        },
+        "productId" : {
+          "type" : "object",
+          "properties" : { }
+        },
+        "discountPercentage" : {
+          "type" : "string"
+        },
+        "endDate" : {
+          "type" : "string"
+        }
+      }
+    },
+    "Status" : {
+      "type" : "object",
+      "properties" : {
+        "statusCode" : {
+          "type" : "string"
+        },
+        "statusText" : {
+          "type" : "string"
+        }
+      }
+    },
+    "setDiscountResponse" : {
+      "type" : "object",
+      "properties" : {
+        "status" : {
+          "$ref" : "#/definitions/Status"
+        },
+        "discountId" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+}

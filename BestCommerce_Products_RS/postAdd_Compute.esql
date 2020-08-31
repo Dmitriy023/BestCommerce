@@ -1,0 +1,44 @@
+
+
+CREATE COMPUTE MODULE postAdd_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE product REFERENCE TO InputRoot.JSON.Data;
+		DECLARE sqlInsert CHARACTER 'INSERT INTO iba_app.TMP_DM_BESTCOM_MERCH_PRODUCTS
+									  (product_id,
+									   merchant_id,
+									   name,
+									   category,
+									   description,
+									   price,
+									   price_ccy,
+									   pay_type,
+									   delivery_countries)
+									VALUES
+									  (?,?, ?, ?, ?, ?, ?, ?, ?)';
+		DECLARE rowSQN ROW;
+		SET rowSQN.row[] = PASSTHRU('select lpad(iba_app.tmp_sq_bestcom_productid.nextval , 10,0) SQN from dual');
+		
+		IF product.deliveryCountry is NULL OR product.deliveryCountry = '' THEN
+			SET product.deliveryCountry = 'ALL';
+		END IF;	
+		
+		PASSTHRU(sqlInsert,
+						rowSQN.row[1].SQN,
+						product.merchantId,
+						product.name,
+						UPPER(product.category),
+						product.description,
+						CAST(product.price AS DECIMAL),
+						product.priceCCY,
+						product.payType,
+						product.deliveryCountry);
+						
+		SET OutputRoot.JSON.Data.status.statusCode = 0;
+		SET OutputRoot.JSON.Data.status.statusText = 'Successfully added;';		
+		SET OutputRoot.JSON.Data.productId = rowSQN.row[1].SQN;	
+		SET OutputRoot.HTTPResponseHeader."SessionId" = InputRoot.HTTPInputHeader.Sessionid;
+		RETURN TRUE;
+	END;
+
+END MODULE;

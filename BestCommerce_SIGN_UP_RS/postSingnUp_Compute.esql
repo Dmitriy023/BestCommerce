@@ -1,0 +1,106 @@
+
+
+CREATE COMPUTE MODULE postSingnUp_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE merchant REFERENCE TO InputRoot.JSON.Data;
+		DECLARE isError boolean FALSE;
+		DECLARE errorText CHARACTER '';
+		DECLARE rowCheck ROW;
+		
+		-- CHECK INCOMMING PARAMS:
+		IF merchant.name IS NULL OR  merchant.name = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * name * is not defined! ';
+		END IF;
+		
+		IF merchant.type IS NULL OR merchant.type = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter *type* is not defined! ';
+		END IF;
+		
+		IF merchant.countryCode IS NULL OR merchant.countryCode = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * countryCode * is not defined! ';
+		ELSE 
+			SET rowCheck.row[] = PASSTHRU('SELECT COUNT(*) CNT FROM IBA_APP.TMP_DM_BESTCOM_COUNTRIES S WHERE S.CODE = ?',merchant.countryCode);
+			IF rowCheck.row[1].CNT = 0 THEN 
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * countryCode * is not invalid! Please check your country. ';
+			END IF;	
+		END IF;
+		
+		IF merchant.address IS NULL OR merchant.address = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * address * is not defined! ';
+		END IF;
+		
+		IF merchant.phoneNumber IS NULL OR merchant.phoneNumber = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * phoneNumber * is not defined! ';
+		END IF;
+		
+		IF merchant.email IS NULL OR merchant.email = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * email * is not defined! ';
+		ELSE 
+			SET rowCheck.row[] = PASSTHRU('SELECT count(*) CNT FROM iba_app.tmp_dm_bestcom_merchant s where s.email = ?',merchant.email);
+			IF rowCheck.row[1].CNT <> 0 THEN 
+				SET isError = true;
+				SET errorText = errorText || '*/ We already have user with this e-mail. If you forgot your password you can reset it. ';
+			END IF;		
+		END IF;
+		
+		IF merchant.ownerName IS NULL OR merchant.ownerName = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * ownerName * is not defined! ';
+		END IF;
+		
+		IF merchant.password IS NULL OR merchant.password = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * password * is not defined! ';
+		ELSEIF  (CAST(merchant.password as DECIMAL DEFAULT 0.0)) = 0.0 OR LENGTH(merchant.password) < 6 THEN	
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * password * should be minimum 6 NUMERICAL symbols! ';
+		END IF;
+
+		IF isError IS TRUE THEN 
+			SET OutputRoot.JSON.Data.status.statusCode = -1;
+			SET OutputRoot.JSON.Data.status.statusText = errorText;
+			PROPAGATE TO TERMINAL 'out1' ;
+			
+			RETURN FALSE;	
+		END IF;	
+		DECLARE rowSQN ROW;	
+		DECLARE sqlInsert CHARACTER 'INSERT INTO iba_app.tmp_dm_bestcom_merchant m
+									  (merchant_id,
+									   name,
+									   type,
+									   country_code,
+									   address,
+									   phone_number,
+									   email,
+									   owner_name,
+									   password)
+									VALUES
+									  (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+									  
+		SET rowSQN.row[] =  PASSTHRU('select lpad(iba_app.tmp_sq_bestcom_mecrchantid.nextval, 10,0) SQN from dual');									  
+
+		PASSTHRU(sqlInsert,
+					rowSQN.row[1].SQN,
+					merchant.name,
+					merchant.type,
+					merchant.countryCode,
+					merchant.address,
+					merchant.phoneNumber,
+					merchant.email,
+					merchant.ownerName,
+					merchant.password) ;
+		
+		SET OutputRoot.JSON.Data.merchantId = rowSQN.row[1].SQN;
+		SET OutputRoot.JSON.Data.status.statusCode = '0';
+		SET OutputRoot.JSON.Data.status.statusText = 'WellCome ' ||  merchant.ownerName || '. Your id is: ' || rowSQN.row[1].SQN || '. Please Sign In to continue';				  
+		RETURN TRUE;
+	END;
+END MODULE;

@@ -1,0 +1,56 @@
+
+
+CREATE COMPUTE MODULE validateDiscount_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		DECLARE params REFERENCE TO InputRoot.JSON.Data;
+		DECLARE isError BOOLEAN FALSE;
+		DECLARE errorText CHARACTER '';
+		DECLARE rowCheck ROW;
+		--SET Environment.Variables.sessionID = sessionID;
+		
+		IF params.merchantId IS NULL OR params.merchantId = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * merchantId * is not defined! ';
+		ELSE 
+			SET rowCheck.row[] = PASSTHRU('SELECT * FROM iba_app.tmp_dm_bestcom_merchant s where s.merchant_id = ?',params.merchantId);
+			IF CARDINALITY(rowCheck.row[]) = 0 THEN 
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * merchantId * is not found in our database ! Please check your merchants ID.';
+			END IF;	
+		END IF;
+		
+		IF params.productId IS NULL OR params.productId = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * productId * is not defined! ';
+		ELSE 
+			SET rowCheck.row[] = PASSTHRU('SELECT * FROM iba_app.tmp_dm_bestcom_merch_products s where s.product_id = ?',params.productId);
+			IF CARDINALITY(rowCheck.row[]) = 0 THEN 
+				SET isError = true;
+				SET errorText = errorText || '*/ Required parameter * productId * is not found in our database ! Please check your merchants ID.';
+			END IF;	
+		END IF;
+		
+		IF params.discountPercentage IS NULL OR params.discountPercentage = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * discountPercentage * is not defined! ';
+		END IF;
+		
+		IF params.endDate IS NULL OR params.endDate = '' THEN
+			SET isError = true;
+			SET errorText = errorText || '*/ Required parameter * endDate * is not defined! ';
+		END IF;
+				
+		IF isError IS TRUE THEN 
+			SET OutputRoot.JSON.Data.status.statusCode = -1;
+			SET OutputRoot.JSON.Data.status.statusText = errorText;
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE;
+		END IF;
+		
+		SET OutputRoot = InputRoot ;
+		RETURN TRUE;
+	END;
+
+END MODULE;

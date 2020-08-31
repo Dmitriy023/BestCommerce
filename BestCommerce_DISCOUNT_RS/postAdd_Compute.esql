@@ -1,0 +1,35 @@
+
+
+CREATE COMPUTE MODULE postAdd_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE params REFERENCE TO InputRoot.JSON.Data;
+		DECLARE endDate DATE CAST(params.endDate as DATE FORMAT 'yyyy-MM-dd');
+		DECLARE rowSQN ROW;
+		DECLARE sqlSeq CHARACTER ' select lpad(iba_app.tmp_sq_bestcom_discountid.nextval , 10,0) SQN from dual';
+		DECLARE sqlInsertDiscount CHARACTER ' INSERT INTO iba_app.tmp_dm_bestcom_merch_discounts
+															     (discount_id, 
+															      merchant_id,
+															      product_id, 
+															      discount_persentage, 
+															      end_date)
+															 values
+															   (?, ?, ?, ?, ?)';
+															   
+		DECLARE sqlUpdateProducts CHARACTER  'update iba_app.tmp_dm_bestcom_merch_products s
+																	    set s.discount_id = ?
+																	  where s.product_id = ?
+																	    and s.merchant_id = ?';
+																	    
+		SET rowSQN.row[] = PASSTHRU(sqlSeq)	;	
+		PASSTHRU(sqlInsertDiscount,rowSQN.row[1].SQN,params.merchantId,params.productId,CAST(params.discountPercentage AS DECIMAL),endDate);
+		PASSTHRU(sqlUpdateProducts,rowSQN.row[1].SQN,params.productId,params.merchantId);	
+		
+		SET OutputRoot.JSON.Data.status.statusCode = 0;	
+		SET OutputRoot.JSON.Data.status.statusText = 'Successfully Processed';	
+		SET OutputRoot.JSON.Data.discountId = rowSQN.row[1].SQN;	
+		SET OutputRoot.HTTPResponseHeader."SessionId" = InputRoot.HTTPInputHeader.Sessionid;									    												   
+		RETURN TRUE;
+	END;
+
+END MODULE;

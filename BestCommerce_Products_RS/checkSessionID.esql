@@ -1,0 +1,37 @@
+
+
+CREATE COMPUTE MODULE checkSessionID
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE sessionID CHARACTER InputRoot.HTTPInputHeader.Sessionid;
+		DECLARE sqlCheckSession CHARACTER 'SELECT *
+										  FROM iba_app.tmp_dm_bestcom_sessions s,
+										       iba_app.tmp_dm_bestcom_session_attr a
+										 where s.sessionid = a.sessionid
+										   and s.isactive = ''T''
+										   and s.alive_till > SYSDATE
+										   and s.sessionid = ?';
+		DECLARE rowCheck ROW;
+
+		SET rowCheck.row[] = PASSTHRU(sqlCheckSession,sessionID);	
+		
+		IF CARDINALITY(rowCheck.row[]) = 0 THEN
+			SET OutputRoot.JSON.Data.status.statusCode = - 1;
+			SET OutputRoot.JSON.Data.status.statusText = 'Invalid sessionID. Maybe your session get expired. Please relogin.';
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE;
+		ELSEIF 	rowCheck.row[1].MERCHANT_ID <> InputRoot.JSON.Data.merchantId OR rowCheck.row[1].MERCHANT_ID <> InputLocalEnvironment.REST.Input.Parameters.merchantId THEN 
+			SET OutputRoot.JSON.Data.status.statusCode = - 1;
+			SET OutputRoot.JSON.Data.status.statusText = 'Your session is not valid for this merhcant. Please relogin.';
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE;
+		END IF;	
+		
+		SET Environment.Variables.sessionID = sessionID;
+		SET OutputRoot = InputRoot ;
+		
+		RETURN TRUE;
+		
+	END;
+
+END MODULE;

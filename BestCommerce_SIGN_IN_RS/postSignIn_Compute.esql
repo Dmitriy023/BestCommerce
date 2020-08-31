@@ -1,0 +1,52 @@
+
+
+CREATE COMPUTE MODULE postSignIn_Compute
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		DECLARE params REFERENCE TO InputRoot.JSON.Data;
+		DECLARE sessionID CHARACTER UUIDASCHAR;
+		DECLARE sqlLogin CHARACTER 'SELECT * FROM iba_app.tmp_dm_bestcom_merchant s where s.password = ? and s.email = ?';
+		DECLARE rowLogin ROW;
+		DECLARE expDate TIMESTAMP CURRENT_TIMESTAMP + CAST( 12 AS INTERVAL HOUR);
+		
+		DECLARE sqlInsertSessions CHARACTER 'INSERT INTO iba_app.tmp_dm_bestcom_sessions
+												  (sessionid, isactive, alive_till)
+												VALUES
+												  (?, ?, ?)';
+												  
+		DECLARE sqlInsertSessionAttr CHARACTER 'INSERT INTO iba_app.tmp_dm_bestcom_session_attr
+												  (sessionid, merchant_id)
+												VALUES
+												  (?, ?)';
+												  
+		IF UPPER(params.login.type) = 'MERCHANT_ID' THEN 
+			SET sqlLogin = REPLACE(sqlLogin,'s.email','s.merchant_id');
+		END IF;
+		
+		IF params.isWeeklySession IS NOT NULL AND params.isWeeklySession = 'T' THEN
+			  SET expDate = CURRENT_TIMESTAMP + CAST( 7 AS INTERVAL DAY);
+		END IF;	 
+		
+		SET rowLogin.row[] = PASSTHRU(sqlLogin, params.password, params.login.value);
+		IF CARDINALITY(rowLogin.row[]) = 0 THEN
+			SET OutputRoot.JSON.Data.status.statusCode = -1;
+			SET OutputRoot.JSON.Data.status.statusText = 'Invalid login or password';
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE; 
+		END IF;
+		
+		PASSTHRU('update iba_app.tmp_dm_bestcom_sessions s set s.isActive = ''F'' where s.sessionid in (select r.sessionid from iba_app.tmp_dm_bestcom_session_attr r where r.merchant_id = ?)',rowLogin.row[1].MERCHANT_ID);
+		PASSTHRU(sqlInsertSessions,sessionID,'T',expDate) ;
+		PASSTHRU(sqlInsertSessionAttr,sessionID,rowLogin.row[1].MERCHANT_ID);
+		
+		SET OutputRoot.JSON.Data.status.statusCode = 0;
+		SET OutputRoot.JSON.Data.status.statusText = 'SUCCESSFULLY AUTHENTICATED';
+		SET OutputRoot.JSON.Data.sessionID = sessionID;
+		SET OutputRoot.HTTPRequestHeader."sessionID" = sessionID;
+		SET OutputRoot.HTTPResponseHeader."sessionID" = sessionID;
+		
+		RETURN TRUE;
+	END;
+
+END MODULE;

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:restapiDescriptor xmlns="http://com.ibm.etools.mft.descriptor.base" xmlns:ns2="http://com.ibm.etools.mft.descriptor.restapi" definitionType="swagger_20" definitionFile="swagger.json" implementation="gen/BestCommerce_Products_RS.msgflow" https="false">
+    <ns2:operations>
+        <ns2:operation name="getGet" implementation="getGet.subflow"/>
+        <ns2:operation name="postAdd" implementation="postAdd.subflow"/>
+    </ns2:operations>
+    <ns2:errorHandlers>
+        <ns2:errorHandler type="CATCH" implementation="BestCommerce_Products_RSInputCatchHandler.subflow"/>
+        <ns2:errorHandler type="FAILURE" implementation="BestCommerce_Products_RSInputFailureHandler.subflow"/>
+    </ns2:errorHandlers>
+</ns2:restapiDescriptor>

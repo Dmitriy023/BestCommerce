@@ -1,0 +1,98 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "title" : "BestCommerce_SIGN_UP_RS",
+    "version" : "1.0.0",
+    "description" : "BestCommerce_SIGN_UP_RS"
+  },
+  "paths" : {
+    "/singnUp" : {
+      "post" : {
+        "operationId" : "postSingnUp",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful.",
+            "schema" : {
+              "$ref" : "#/definitions/signUpResponse"
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error. Something went wrong.",
+            "schema" : {
+              "$ref" : "#/definitions/status"
+            }
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a singnUp",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "type" : "integer"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        } ]
+      }
+    }
+  },
+  "basePath" : "/bestcommerce_sign_up_rs/",
+  "definitions" : {
+    "Merchant" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "type" : {
+          "type" : "string"
+        },
+        "countryCode" : {
+          "type" : "string"
+        },
+        "address" : {
+          "type" : "string"
+        },
+        "phoneNumber" : {
+          "type" : "string"
+        },
+        "email" : {
+          "type" : "string"
+        },
+        "ownerName" : {
+          "type" : "string"
+        },
+        "password" : {
+          "type" : "string"
+        }
+      }
+    },
+    "signUpResponse" : {
+      "type" : "object",
+      "properties" : {
+        "status" : {
+          "$ref" : "#/definitions/status"
+        },
+        "merchantId" : {
+          "type" : "string"
+        }
+      }
+    },
+    "status" : {
+      "type" : "object",
+      "properties" : {
+        "statusCode" : {
+          "type" : "string"
+        },
+        "statusText" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+}

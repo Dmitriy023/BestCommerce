@@ -1,0 +1,157 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "title" : "BestCommerce_Products_RS",
+    "version" : "1.0.0",
+    "description" : "BestCommerce_Products_RS"
+  },
+  "paths" : {
+    "/products/add" : {
+      "post" : {
+        "operationId" : "postAdd",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful.",
+            "schema" : {
+              "$ref" : "#/definitions/productAddResponse"
+            }
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a add",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/Product"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        }, {
+          "name" : "sessionID",
+          "in" : "query",
+          "type" : "string",
+          "required" : true,
+          "description" : "Session ID tha you get by sign in"
+        } ]
+      }
+    },
+    "/products/get" : {
+      "get" : {
+        "operationId" : "getGet",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful.",
+            "schema" : {
+              "$ref" : "#/definitions/getProductsResponse"
+            }
+          }
+        },
+        "produces" : [ "application/json" ],
+        "description" : "Retrieve get",
+        "parameters" : [ {
+          "name" : "merchantId",
+          "in" : "query",
+          "type" : "boolean",
+          "required" : true
+        }, {
+          "name" : "orderBy",
+          "in" : "query",
+          "type" : "string"
+        }, {
+          "name" : "sessionID",
+          "in" : "header",
+          "type" : "string",
+          "required" : true
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "type" : "string"
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "type" : "string"
+        } ]
+      }
+    }
+  },
+  "basePath" : "/bestcommerce_products_rs/",
+  "definitions" : {
+    "Product" : {
+      "type" : "object",
+      "properties" : {
+        "productId" : {
+          "type" : "string"
+        },
+        "merchantId" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "category" : {
+          "type" : "string"
+        },
+        "description" : {
+          "type" : "string"
+        },
+        "price" : {
+          "type" : "string"
+        },
+        "priceCCY" : {
+          "type" : "string"
+        },
+        "discountId" : {
+          "type" : "string"
+        },
+        "payType" : {
+          "type" : "string",
+          "format" : "CASH,CARD"
+        },
+        "deliveryCountry" : {
+          "type" : "string"
+        },
+        "dateCreated" : {
+          "type" : "string"
+        }
+      }
+    },
+    "productAddResponse" : {
+      "type" : "object",
+      "properties" : {
+        "status" : {
+          "$ref" : "#/definitions/Status"
+        },
+        "productId" : {
+          "type" : "string"
+        }
+      }
+    },
+    "Status" : {
+      "type" : "object",
+      "properties" : {
+        "statusCode" : {
+          "type" : "string"
+        },
+        "statusText" : {
+          "type" : "string"
+        }
+      }
+    },
+    "getProductsResponse" : {
+      "type" : "object",
+      "properties" : {
+        "status" : {
+          "$ref" : "#/definitions/Status"
+        },
+        "products" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/Product"
+          }
+        }
+      }
+    }
+  }
+}
